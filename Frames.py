@@ -1,19 +1,11 @@
-from tkinter import *
-from tkinter import font, ttk
-import hashlib
-import harperdb
-import tkcalendar as tkcalendar
+from typing import Optional, Dict
 
-from db_methods import *
-from Predicate_functions import *
-from datetime import datetime
-
-db = harperdb.HarperDB(url="https://pb175-marvav.harperdbcloud.com",
-                       username="marvav", password="muniprojekt123")
+from DB_Methods import *
+from Auxilary_Functions import *
 
 frames = {"log_in": None, "register": None, "main_menu": None,
           "your_tickets": None, "profile": None, "tours": None,
-          "admin_menu": None, "admin_tours": None, "add_tour_type": None,
+          "admin_menu": None, "modify_tour_type":None, "add_tour_type": None,
           "change_rules": None, "purchase": None, "ticket": None,
           "coordinator_menu": None, "set_schedule": None}
 
@@ -24,11 +16,21 @@ ticket_order = ["Name", "Location", "Date", "Time", "Duration",
 user = None
 big_font = None
 small_font = None
-errorLabel = None
-upcoming_tours = db.sql("SELECT * FROM `database`.`tour_types`")
-locations = get_locations()
+
+locations = tour_types("Location")
 schedules = get_schedules()
 
+
+def init_admin_menu():
+    frame = frames["admin_menu"]
+    Label(frame, text='Admin Menu', font=big_font, width=20, height=2).pack()
+    NavButton(frame, 'Add new tour', lambda: hide_all_frames("add_tour_type"))
+    tour = ttk.Combobox(frame, values=tour_types("Name"), width=20,justify='center')
+    tour.current(0)
+    tour.pack()
+    NavButton(frame, 'Modify tour', lambda: modify_tour_type(tour.get()))
+    NavButton(frame, 'Set Rules', lambda: hide_all_frames("change_rules"))
+    NavButton(frame, 'Log Off', lambda: hide_all_frames("log_in"))
 
 def init_add_tour_type():
     frame = frames["add_tour_type"]
@@ -65,11 +67,66 @@ def init_add_tour_type():
     tour["TourRules"] = ""
 
     NavButtonGrid(frame, 'Go Back', lambda: hide_all_frames("admin_menu"),
-                  row=8,
-                  column=0)
-    NavButtonGrid(frame, 'Confirm', lambda: insert_tour_type(tour), row=8,
-                  column=1)
+                  row=8, column=0)
+    NavButtonGrid(frame, 'Confirm', lambda: insert_tour_type(frame, tour),
+                  row=8, column=1)
 
+def modify_tour_type(tour):
+    frame = hide_all_frames("modify_tour_type")
+    tour = db.search_by_value("database", "tour_types", "Name", tour)
+    if not tour:
+        return hide_all_frames("add_tour_type")
+    tour = tour[0]
+    new_tour = dict()
+    Label(frame, text='Name:', font=small_font).grid(row=0, column=0)
+    new_tour["Name"] = Entry(frame)
+    new_tour["Name"].insert(END, tour["Name"])
+    new_tour["Name"].grid(row=0, column=1)
+
+    Label(frame, text='Location:', font=small_font, fg="white",
+          bg="blue").grid(row=1, column=0)
+    new_tour["Location"] = Entry(frame)
+    new_tour["Location"].insert(END, tour["Location"])
+    new_tour["Location"].grid(row=1, column=1)
+
+    Label(frame, text='Capacity:', font=small_font).grid(row=2, column=0)
+    new_tour["Capacity"] = Entry(frame)
+    new_tour["Capacity"].insert(END, tour["Capacity"])
+    new_tour["Capacity"].grid(row=2, column=1)
+
+    Label(frame, text='Duration:', font=small_font).grid(row=3, column=0)
+    new_tour["Duration"] = Entry(frame)
+    new_tour["Duration"].insert(END, tour["Duration"])
+    new_tour["Duration"].grid(row=3, column=1)
+
+    Label(frame, text='Description:', font=small_font).grid(row=4, column=1)
+    new_tour["Description"] = Text(frame, width=20, height=10)
+    new_tour["Description"].insert(END, tour["Description"])
+    new_tour["Description"].grid(row=5, column=1)
+
+    Label(frame, text='Ticket Price:', font=small_font).grid(row=6, column=0)
+    new_tour["TicketPrice"] = Entry(frame)
+    new_tour["TicketPrice"].insert(END, tour["TicketPrice"])
+    new_tour["TicketPrice"].grid(row=6, column=1)
+
+    Label(frame, text='Discount Price:', font=small_font).grid(row=7, column=0)
+    new_tour["DiscountPrice"] = Entry(frame)
+    new_tour["DiscountPrice"].insert(END, tour["DiscountPrice"])
+    new_tour["DiscountPrice"].grid(row=7, column=1)
+
+    new_tour["TourRules"] = ""
+
+    NavButtonGrid(frame, 'Go Back', lambda: hide_all_frames("admin_menu"),
+                  row=9, column=0)
+    NavButtonGrid(frame, 'Confirm', lambda: insert_tour_type(frame, new_tour),
+                  row=9, column=1)
+    NavButtonGrid(frame, 'Delete tour', lambda: delete_tour(tour),
+                  row=8, column=0)
+
+def delete_tour(tour):
+    db.sql("DELETE FROM `database`.`tour_types` WHERE Name="+tour["Name"])
+    db.sql("DELETE FROM `database`.`DailyTours` WHERE Name=" + tour["Name"])
+    return hide_all_frames("admin_menu")
 
 def init_coordinator_menu():
     frame = frames["coordinator_menu"]
@@ -111,29 +168,6 @@ def set_schedule(location):
                   row=14, column=1)
 
 
-def insert_tour_type(tour):
-    if not is_valid_tour(tour):
-        global errorLabel
-        if errorLabel is not None:
-            errorLabel.destroy()
-        errorLabel = Label(frames["add_tour_type"], text="Invalid tour",
-                           width=25, height=1, font=small_font)
-        return errorLabel.grid(row=10, column=0)
-
-    db.insert("database", "tour_types",
-              [{"Name": tour["Name"].get(), "Location": tour["Location"].get(),
-                "Duration": tour["Duration"].get(),
-                "Capacity": tour["Capacity"].get(),
-                "Description": tour["Description"].get("1.0", END),
-                "TicketPrice": tour["TicketPrice"].get(),
-                "DiscountPrice": tour["DiscountPrice"].get(),
-                "TourRules": tour["TourRules"]}])
-    db.insert("database", "DailyTours",
-              [{"Name": "Ostrov u Macochy", "schedule": []}])
-
-    return hide_all_frames("admin_menu")
-
-
 def init_change_rules():
     frame = frames["change_rules"]
     Label(frame, text='General Tour Rules', font=big_font, width=20,
@@ -148,21 +182,6 @@ def init_change_rules():
     NavButton(frame, 'Go Back', lambda: hide_all_frames("admin_menu"))
 
 
-def init_admin_menu():
-    frame = frames["admin_menu"]
-    Label(frame, text='Admin Menu', font=big_font, width=20, height=2).pack()
-    NavButton(frame, 'Manage Tours', lambda: hide_all_frames("admin_tours"))
-    NavButton(frame, 'Set Rules', lambda: hide_all_frames("change_rules"))
-    NavButton(frame, 'Log Off', lambda: hide_all_frames("log_in"))
-
-
-def init_admin_tours():
-    frame = frames["admin_tours"]
-    Label(frame, text='Tour Menu', font=big_font, width=20, height=2).pack()
-    NavButton(frame, 'Add tour', lambda: hide_all_frames("add_tour_type"))
-    NavButton(frame, 'Go back', lambda: hide_all_frames("admin_menu"))
-
-
 def init_profile():
     frame = frames["profile"]
     Label(frame, text='Your Profile').pack()
@@ -173,14 +192,16 @@ def load_tours(date, location):
     frame = hide_all_frames("tours")
     schedule = schedules[location]
     Label(frame, text='Upcoming Tours').pack()
-    for tour in upcoming_tours:
-        if tour["Location"] != location:
-            continue
-        for time in schedule:
-            label = tour["Name"] + " | " + time + " | " + tour[
-                "Duration"] + " minutes | "
-            SmallButton(frames["tours"], label,
-                        lambda: purchase_ticket(date, time, tour))
+
+    if date >= get_date():
+        for tour in get_tours_at_location(location):
+            for time in schedule:
+                if date == get_date() and time < get_time():
+                    continue
+                label = tour["Name"] + " | " + time + " | " + tour[
+                    "Duration"] + " minutes | "
+                SmallButton(frames["tours"], label,
+                            lambda: purchase_ticket(date, time, tour))
     NavButton(frame, 'Go back', lambda: hide_all_frames("main_menu", frame))
 
 
@@ -191,9 +212,8 @@ def purchase_ticket(date, time, tour, price=0):
     frame = hide_all_frames("purchase")
 
     listbox = Listbox(frame)
-    for key in ticket_order:
-        if key in tour:
-            listbox.insert(END, key + ": " + tour[key])
+    for key in tour_order:
+        listbox.insert(END, key + ": " + tour[key])
     listbox.pack()
 
     Label(frame, text='Ticket number', font=small_font).pack()
@@ -204,58 +224,50 @@ def purchase_ticket(date, time, tour, price=0):
     discount = Entry(frame)
     discount.pack()
 
-    price = Label(frames[("purchase")], text="Price: 0 CZK")
+    price = Label(frames["purchase"], text="Price: 0 CZK")
     price.pack()
 
     SmallButton(frame, "Calculate price",
                 lambda: price.config(text="Price: " + str(
                     calculate_price(tickets, discount, tour)) + " CZK"))
-    NavButton(frame, 'Purchase', lambda: purchase(ticket, tickets, discount))
+    NavButton(frame, 'Purchase',
+              lambda: purchase(frame, ticket, tickets, discount))
     NavButton(frame, 'Go Back', lambda: hide_all_frames("tours", frame))
 
 
-def calculate_price(tickets, discount, tour):
-    return int(tickets.get()) * int(tour["DiscountPrice"]) + \
-           int(discount.get()) * int(tour["TicketPrice"])
-
-
-def purchase(ticket, tickets, discount):
-    try:
-        if tickets.get()!="" and int(tickets.get()) < 0:
-            return ErrorLabel(frames["tours"], "Invalid ticket count")
-        if discount.get()!="" and int(discount.get()) < 0:
-            return ErrorLabel(frames["tours"], "Invalid discount count")
-        if tickets.get()!="" and discount.get()!="" \
-                and int(tickets.get()) + int(discount.get()) == 0:
-            return ErrorLabel(frames["tours"], "No tickets selected")
-    except:
-        return ErrorLabel(frames["tours"], "Please enter number")
-
-    ticket["TicketsNumber"] = str(tickets.get())
-    ticket["DiscountNumber"] = str(discount.get())
-    user["tickets"].append(ticket)
-    db.update("database", "users", [user])
-
-
-def show_your_tickets():
+def show_your_tickets() -> None:
     frame = hide_all_frames("your_tickets")
     tickets = user["tickets"]
-    Label(frame, text='Your Tickets').pack()
 
     scrollbar = ttk.Scrollbar(frames["your_tickets"], orient=VERTICAL)
     listbox = Listbox(frames["your_tickets"], yscrollcommand=scrollbar.set)
+    listbox.insert(END, "Valid Tickets\n")
+    listbox.insert(END, "\n")
     scrollbar.config(command=listbox.yview)
 
     for ticket in tickets:
+        if is_expired(ticket["Date"], ticket["Time"]):
+            continue
         for key in ticket_order:
             listbox.insert(END, key + ": " + ticket[key])
+        listbox.insert(END, "\n")
+
+    listbox.insert(END, "Expired Tickets")
+    listbox.insert(END, "\n")
+
+    for ticket in tickets:
+        if not is_expired(ticket["Date"], ticket["Time"]):
+            continue
+        for key in ticket_order:
+            listbox.insert(END, key + ": " + ticket[key])
+        listbox.insert(END, "\n")
 
     scrollbar.pack(side=RIGHT, fill=Y)
     listbox.pack(fill=BOTH, expand=1)
     NavButton(frame, 'Go back', lambda: hide_all_frames("main_menu", frame))
 
 
-def init_main_menu():
+def init_main_menu() -> None:
     frame = frames["main_menu"]
     Label(frame, text='Main Menu', font=big_font, width=20, height=2).pack()
     date = tkcalendar.DateEntry(frame, date_pattern='dd/mm/yyyy',
@@ -270,7 +282,7 @@ def init_main_menu():
     NavButton(frame, 'Profile', lambda: hide_all_frames("profile"))
 
 
-def init_register():
+def init_register() -> None:
     frame = frames["register"]
 
     Label(frames["register"], text='Enter username').pack()
@@ -278,7 +290,7 @@ def init_register():
     username.pack()
 
     Label(frame, text='Enter password').pack()
-    password = Entry(frame)
+    password = Entry(frame, show='*')
     password.pack()
 
     NavButton(frame, 'Create Account',
@@ -295,81 +307,17 @@ def init_log_in() -> None:
     username.pack()
 
     Label(frame, text='Enter password').pack()
-    password = Entry(frame)
+    password = Entry(frame, show='*')
     password.pack()
 
     NavButton(frame, 'Log In',
-              lambda: authorize_credentials(username.get(), password.get()))
+              lambda: authorize_log_in(username.get(), password.get()))
     NavButton(frame, 'Register', lambda: hide_all_frames("register"))
     NavButton(frame, 'EXIT', lambda: exit())
 
 
-def authorize_credentials(username, password):
-    if username == "" or password == "":
-        return ErrorLabel(frames["log_in"], 'Credentials have to be filled')
-
-    new_user = db.search_by_value("database", "users", "username", username)
-    hashed_password = hashlib.sha256(password.encode()).hexdigest()
-
-    if new_user[0]["password"] != hashed_password:
-        return ErrorLabel(frames["log_in"], 'Wrong password')
-
-    if new_user:
-        global user
-        user = new_user[0]
-        if user["role"] == "Visitor":
-            return hide_all_frames("main_menu")
-        if user["role"] == "Coordinator":
-            return hide_all_frames("coordinator_menu")
-        elif user["role"] == "Admin":
-            return hide_all_frames("admin_menu")
-
-
-def register_user(username, password):
-    global user
-
-    if username == "" or password == "":
-        return ErrorLabel(frames["register"], 'Credentials have to be filled')
-
-    if db.search_by_value("database", "users", "username", username):
-        return ErrorLabel(frames["register"], 'This username is already taken')
-
-    try:
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
-        db.insert("database", "users",
-                  [{"role": "Visitor", "username": username,
-                    "password": hashed_password, "tickets": []}])
-        user = db.search_by_value("database", "users", "username", username)
-        hide_all_frames("main_menu")
-
-    except harperdb.exceptions.HarperDBError:
-        ErrorLabel(frames["register"], 'Error is on our side. Try again')
-
-
-def ErrorLabel(frame, text):
-    global errorLabel
-    if errorLabel is not None:
-        errorLabel.destroy()
-    errorLabel = Label(frame, text=text, width=25, height=1, font=small_font)
-    errorLabel.pack()
-
-
-def SmallButton(frame, text, command):
-    Button(frame, text=text, font=small_font, width=40, height=1,
-           activebackground="blue", command=command).pack()
-
-
-def NavButton(frame, text, command):
-    Button(frame, text=text, font=big_font, width=20, height=2,
-           activebackground="#cdfffc", command=command).pack()
-
-
-def NavButtonGrid(frame, text, command, row, column):
-    Button(frame, text=text, height=2, width=14, activebackground="blue",
-           font=small_font, command=command).grid(row=row, column=column)
-
-
-def hide_all_frames(new_frame, reset_frame=None):
+def hide_all_frames(new_frame: str,
+                    reset_frame: Optional[Frame] = None) -> Frame:
     if reset_frame:
         for widget in reset_frame.winfo_children():
             widget.destroy()
@@ -378,3 +326,19 @@ def hide_all_frames(new_frame, reset_frame=None):
     frames[new_frame].pack(fill=BOTH, expand=True)
     frames[new_frame].place(relx=0.5, rely=0.5, anchor=CENTER)
     return frames[new_frame]
+
+
+def init_ui(new_user) -> Frame:
+    Frames.user = new_user
+    if user["role"] == "Coordinator":
+        init_coordinator_menu()
+        return hide_all_frames("coordinator_menu")
+    elif user["role"] == "Admin":
+        init_admin_menu()
+        init_add_tour_type()
+        init_change_rules()
+        return hide_all_frames("admin_menu")
+
+    init_main_menu()
+    init_profile()
+    return hide_all_frames("main_menu")

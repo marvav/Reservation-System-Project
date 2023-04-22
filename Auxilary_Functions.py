@@ -1,3 +1,5 @@
+from datetime import datetime, date
+
 
 def strip_entry(entry):
     return entry.get().replace(' ', '')
@@ -29,3 +31,17 @@ def is_valid_tour(tour):
         return False
 
     return True
+
+
+def get_date():
+    today = date.today()
+    return str(today.day) + "/" + str(today.month) + "/" + str(today.year)
+
+
+def get_time():
+    today = datetime.time(datetime.now())
+    return str(today.hour) + ":" + str(today.minute)
+
+
+def is_expired(date, time):
+    return date < get_date() or (date == get_date() and time < get_time())
