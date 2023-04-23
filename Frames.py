@@ -1,11 +1,10 @@
 from typing import Optional, Dict
-
 from DB_Methods import *
 from Auxilary_Functions import *
 
 frames = {"log_in": None, "register": None, "main_menu": None,
           "your_tickets": None, "profile": None, "tours": None,
-          "admin_menu": None, "modify_tour_type":None, "add_tour_type": None,
+          "admin_menu": None, "modify_tour_type": None, "add_tour_type": None,
           "change_rules": None, "purchase": None, "ticket": None,
           "coordinator_menu": None, "set_schedule": None}
 
@@ -14,25 +13,22 @@ ticket_order = ["Name", "Location", "Date", "Time", "Duration",
                 "Description", "TicketsNumber", "DiscountNumber"]
 
 user = None
-big_font = None
-small_font = None
-
-locations = tour_types("Location")
-schedules = get_schedules()
 
 
-def init_admin_menu():
+def init_admin_menu() -> None:
     frame = frames["admin_menu"]
     Label(frame, text='Admin Menu', font=big_font, width=20, height=2).pack()
     NavButton(frame, 'Add new tour', lambda: hide_all_frames("add_tour_type"))
-    tour = ttk.Combobox(frame, values=tour_types("Name"), width=20,justify='center')
+    tour = ttk.Combobox(frame, values=tour_types("Name"), width=20,
+                        justify='center')
     tour.current(0)
     tour.pack()
     NavButton(frame, 'Modify tour', lambda: modify_tour_type(tour.get()))
     NavButton(frame, 'Set Rules', lambda: hide_all_frames("change_rules"))
     NavButton(frame, 'Log Off', lambda: hide_all_frames("log_in"))
 
-def init_add_tour_type():
+
+def init_add_tour_type() -> None:
     frame = frames["add_tour_type"]
     tour = dict()
     Label(frame, text='Name:', font=small_font).grid(row=0, column=0)
@@ -64,12 +60,12 @@ def init_add_tour_type():
     tour["DiscountPrice"] = Entry(frame)
     tour["DiscountPrice"].grid(row=7, column=1)
 
-    tour["TourRules"] = ""
-
-    NavButtonGrid(frame, 'Go Back', lambda: hide_all_frames("admin_menu"),
+    NavButtonGrid(frame, 'Go Back',
+                  lambda: hide_all_frames("admin_menu", frame),
                   row=8, column=0)
     NavButtonGrid(frame, 'Confirm', lambda: insert_tour_type(frame, tour),
                   row=8, column=1)
+
 
 def modify_tour_type(tour):
     frame = hide_all_frames("modify_tour_type")
@@ -77,7 +73,9 @@ def modify_tour_type(tour):
     if not tour:
         return hide_all_frames("add_tour_type")
     tour = tour[0]
+
     new_tour = dict()
+
     Label(frame, text='Name:', font=small_font).grid(row=0, column=0)
     new_tour["Name"] = Entry(frame)
     new_tour["Name"].insert(END, tour["Name"])
@@ -120,20 +118,17 @@ def modify_tour_type(tour):
                   row=9, column=0)
     NavButtonGrid(frame, 'Confirm', lambda: insert_tour_type(frame, new_tour),
                   row=9, column=1)
-    NavButtonGrid(frame, 'Delete tour', lambda: delete_tour(tour),
+    NavButtonGrid(frame, 'Delete tour', lambda: delete_tour(tour, frame),
                   row=8, column=0)
 
-def delete_tour(tour):
-    db.sql("DELETE FROM `database`.`tour_types` WHERE Name="+tour["Name"])
-    db.sql("DELETE FROM `database`.`DailyTours` WHERE Name=" + tour["Name"])
-    return hide_all_frames("admin_menu")
 
+# Creates the layout for coordinator menu
 def init_coordinator_menu():
     frame = frames["coordinator_menu"]
     Label(frame, text='Coordinator Menu', font=big_font, width=20,
           height=2).pack()
     Label(frame, text='Choose Location:', width=20, height=2).pack()
-    location = ttk.Combobox(frame, values=locations, width=20,
+    location = ttk.Combobox(frame, values=tour_types("Location"), width=20,
                             justify='center')
     location.current(0)
     location.pack()
@@ -179,18 +174,18 @@ def init_change_rules():
     new_rules.pack()
     NavButton(frame, 'Confirm',
               lambda: change_rules(new_rules.get("1.0", END)))
-    NavButton(frame, 'Go Back', lambda: hide_all_frames("admin_menu"))
+    NavButton(frame, 'Go Back', lambda: hide_all_frames("admin_menu", frame))
 
 
 def init_profile():
     frame = frames["profile"]
     Label(frame, text='Your Profile').pack()
-    NavButton(frame, 'Log off', lambda: hide_all_frames("log_in"))
+    NavButton(frame, 'Log off', lambda: hide_all_frames("log_in", frame))
 
 
 def load_tours(date, location):
     frame = hide_all_frames("tours")
-    schedule = schedules[location]
+    schedule = get_schedules()[location]
     Label(frame, text='Upcoming Tours').pack()
 
     if date >= get_date():
@@ -205,7 +200,7 @@ def load_tours(date, location):
     NavButton(frame, 'Go back', lambda: hide_all_frames("main_menu", frame))
 
 
-def purchase_ticket(date, time, tour, price=0):
+def purchase_ticket(date, time, tour, price=0) -> None:
     ticket = {"Name": tour["Name"], "Location": tour["Location"], "Date": date,
               "Time": time, "Duration": tour["Duration"],
               "Description": tour["Description"]}
@@ -213,7 +208,7 @@ def purchase_ticket(date, time, tour, price=0):
 
     listbox = Listbox(frame)
     for key in tour_order:
-        listbox.insert(END, key + ": " + tour[key])
+        listbox.insert(END, key + ": " + ticket[key])
     listbox.pack()
 
     Label(frame, text='Ticket number', font=small_font).pack()
@@ -273,7 +268,8 @@ def init_main_menu() -> None:
     date = tkcalendar.DateEntry(frame, date_pattern='dd/mm/yyyy',
                                 justify='center')
     date.pack()
-    combo = ttk.Combobox(frame, values=locations, width=20, justify='center')
+    combo = ttk.Combobox(frame, values=tour_types("Location"),
+                         width=20, justify='center')
     combo.current(0)
     combo.pack()
     NavButton(frame, 'Upcoming Tours',

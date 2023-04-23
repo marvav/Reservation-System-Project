@@ -1,4 +1,3 @@
-from Auxilary_Functions import *
 from Widgets import *
 import harperdb
 import hashlib
@@ -33,7 +32,7 @@ def tour_types(param):
     return [x[param] for x in db.sql("SELECT * FROM `database`.`tour_types`")]
 
 
-def get_tours_at_location(location):
+def get_tours_at_location(location: str) -> List[Tour]:
     tours = db.search_by_value("database", "tour_types", "Location", location)
     return tours
 
@@ -49,17 +48,23 @@ def get_schedules():
     return schedules
 
 
+def delete_tour(frame, tour):
+    db.delete("database", "tour_types", [tour["Name"]])
+    db.delete("database", "DailyTours", [tour["Name"]])
+    return Frames.hide_all_frames("admin_menu", frame)
+
+
 def purchase(frame, ticket, tickets, discount):
     try:
         if tickets.get() != "" and int(tickets.get()) < 0:
-            return errorLabel(frame, "Invalid ticket count")
+            return ErrorLabel(frame, "Invalid ticket count")
         if discount.get() != "" and int(discount.get()) < 0:
-            return errorLabel(frame, "Invalid discount count")
+            return ErrorLabel(frame, "Invalid discount count")
         if tickets.get() != "" and discount.get() != "" \
                 and int(tickets.get()) + int(discount.get()) == 0:
-            return errorLabel(frame, "No tickets selected")
+            return ErrorLabel(frame, "No tickets selected")
     except:
-        return errorLabel(frame, "Please enter number")
+        return ErrorLabel(frame, "Please enter number")
 
     ticket["TicketsNumber"] = str(tickets.get())
     ticket["DiscountNumber"] = str(discount.get())
@@ -68,25 +73,13 @@ def purchase(frame, ticket, tickets, discount):
     Frames.hide_all_frames("main_menu", frame)
 
 
-def calculate_price(tickets, discount, tour):
-    return int(tickets.get()) * int(tour["DiscountPrice"]) + \
-           int(discount.get()) * int(tour["TicketPrice"])
-
-
-def insert_tour_type(frame, tour):
+def insert_tour_type(frame, entries):
+    tour = get_tour(entries)
     if not is_valid_tour(tour):
         return ErrorLabelGrid(frame, "Invalid tour", 10, 1)
 
-    db.insert("database", "tour_types",
-              [{"Name": tour["Name"].get(), "Location": tour["Location"].get(),
-                "Duration": tour["Duration"].get(),
-                "Capacity": tour["Capacity"].get(),
-                "Description": tour["Description"].get("1.0", END),
-                "TicketPrice": tour["TicketPrice"].get(),
-                "DiscountPrice": tour["DiscountPrice"].get(),
-                "TourRules": tour["TourRules"]}])
-    db.insert("database", "DailyTours",
-              [{"Name": tour["Name"].get(), "schedule": []}])
+    db.insert("database", "tour_types", [tour])
+    db.insert("database", "DailyTours",[{"Name": tour["Name"], "schedule": []}])
 
     return Frames.hide_all_frames("admin_menu")
 
@@ -95,10 +88,10 @@ def register_user(username, password):
     frame = Frames.frames["register"]
 
     if username == "" or password == "":
-        return errorLabel(frame, 'Credentials have to be filled')
+        return ErrorLabel(frame, 'Credentials have to be filled')
 
     if db.search_by_value("database", "users", "username", username):
-        return errorLabel(frame, 'This username is already taken')
+        return ErrorLabel(frame, 'This username is already taken')
 
     try:
         hashed_password = hashlib.sha256(password.encode()).hexdigest()
@@ -110,22 +103,22 @@ def register_user(username, password):
         Frames.hide_all_frames("main_menu")
 
     except harperdb.exceptions.HarperDBError:
-        errorLabel(frame, 'Error is on our side. Try again')
+        ErrorLabel(frame, 'Error is on our side. Try again')
 
 
 def authorize_log_in(username, password):
     frame = Frames.frames["log_in"]
     if username == "" or password == "":
-        return errorLabel(frame, 'Credentials have to be filled')
+        return ErrorLabel(frame, 'Credentials have to be filled')
 
     new_user = db.search_by_value("database", "users", "username", username)
 
     if not new_user:
-        return errorLabel(frame, 'Username does not exist')
+        return ErrorLabel(frame, 'Username does not exist')
 
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
     if new_user[0]["password"] != hashed_password:
-        return errorLabel(frame, 'Wrong password')
+        return ErrorLabel(frame, 'Wrong password')
 
     return Frames.init_ui(new_user[0])

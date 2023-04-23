@@ -1,17 +1,16 @@
-from tkinter import *
-from tkinter import font, ttk
-
+from Auxilary_Functions import *
 import Frames
 
 errLabel = None
+big_font = None
+small_font = None
 
 
-def errorLabel(frame, text):
+def ErrorLabel(frame, text):
     global errLabel
     if errLabel is not None:
         errLabel.destroy()
-    errLabel = Label(frame, text=text, width=25,
-                     height=1, font=Frames.small_font)
+    errLabel = Label(frame, text=text, width=25, height=1, font=small_font)
     errLabel.pack()
 
 
@@ -24,16 +23,15 @@ def ErrorLabelGrid(frame, text, row, column):
 
 
 def SmallButton(frame, text, command):
-    Button(frame, text=text, font=Frames.small_font, width=40, height=1,
+    Button(frame, text=text, font=small_font, width=40, height=1,
            activebackground="blue", command=command).pack()
 
 
 def NavButton(frame, text, command):
-    Button(frame, text=text, font=Frames.big_font, width=20, height=2,
+    Button(frame, text=text, font=big_font, width=20, height=2,
            activebackground="#cdfffc", command=command).pack()
 
 
 def NavButtonGrid(frame, text, command, row, column):
     Button(frame, text=text, height=2, width=14, activebackground="blue",
-           font=Frames.small_font, command=command).grid(row=row,
-                                                         column=column)
+           font=small_font, command=command).grid(row=row, column=column)

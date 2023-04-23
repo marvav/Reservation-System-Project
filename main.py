@@ -1,4 +1,5 @@
 from Frames import *
+import Widgets
 
 
 def initialize_window() -> Tk:
@@ -20,8 +21,8 @@ if __name__ == '__main__':
 
     background.pack(side='top', fill=Y, expand=True)
 
-    Frames.big_font = font.Font(family="Helvetica", size=18, weight="bold")
-    Frames.small_font = font.Font(family="Helvetica", size=10)
+    Widgets.big_font = font.Font(family="Helvetica", size=18, weight="bold")
+    Widgets.small_font = font.Font(family="Helvetica", size=10)
 
     init_log_in()
     init_register()

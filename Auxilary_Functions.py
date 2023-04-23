@@ -1,36 +1,56 @@
 from datetime import datetime, date
+from typing import List, Dict, Optional
+from tkinter import *
+from tkinter import font, ttk
+
+Tour = Dict[str, str]
+
+TOUR_PARAMS = ["Name", "Capacity", "Description", "DiscountPrice",
+               "Duration", "Location", "TicketPrice"]
 
 
-def strip_entry(entry):
-    return entry.get().replace(' ', '')
+def strip_entry(entry) -> str:
+    return entry.replace(' ', '')
+
+
+def get_tour(entries):
+    tour = dict()
+    for parameter in TOUR_PARAMS:
+        if parameter == "Description":
+            tour[parameter] = entries[parameter].get("1.0", END)
+        else:
+            tour[parameter] = entries[parameter].get()
+    return tour
 
 
 def is_valid_tour(tour):
-    if not strip_entry(tour["Name"]).isalpha():
+    if not tour["Name"].replace(' ', '').isalpha():
         return False
 
-    if not strip_entry(tour["Location"]).isalpha():
+    if not tour["Location"].replace(' ', '').isalpha():
         return False
 
-    if not tour["Capacity"].get().isnumeric():
+    if not tour["Capacity"].replace(' ', '').isnumeric():
         return False
 
-    if not tour["Duration"].get().isnumeric():
+    if not tour["Duration"].replace(' ', '').isnumeric():
         return False
 
-    if not tour["Description"] != "":
+    if not tour["TicketPrice"].replace(' ', '').isnumeric():
         return False
 
-    if not tour["TicketPrice"].get().isnumeric():
+    if not tour["DiscountPrice"].replace(' ', '').isnumeric():
         return False
 
-    if not tour["DiscountPrice"].get().isnumeric():
-        return False
-
-    if tour["TicketPrice"].get() < tour["DiscountPrice"].get():
+    if int(tour["TicketPrice"]) < int(tour["DiscountPrice"]):
         return False
 
     return True
+
+
+def calculate_price(tickets, discount, tour):
+    return int(tickets.get()) * int(tour["DiscountPrice"]) + \
+           int(discount.get()) * int(tour["TicketPrice"])
 
 
 def get_date():
