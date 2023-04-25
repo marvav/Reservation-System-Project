@@ -1,6 +1,4 @@
-from typing import Optional, Dict
 from DB_Methods import *
-from Auxilary_Functions import *
 
 frames = {"log_in": None, "register": None, "main_menu": None,
           "your_tickets": None, "profile": None, "tours": None,
@@ -118,7 +116,7 @@ def modify_tour_type(tour):
                   row=9, column=0)
     NavButtonGrid(frame, 'Confirm', lambda: insert_tour_type(frame, new_tour),
                   row=9, column=1)
-    NavButtonGrid(frame, 'Delete tour', lambda: delete_tour(tour, frame),
+    NavButtonGrid(frame, 'Delete tour', lambda: delete_tour(frame, tour),
                   row=8, column=0)
 
 
@@ -133,7 +131,7 @@ def init_coordinator_menu():
     location.current(0)
     location.pack()
     NavButton(frame, 'Set Schedule', lambda: set_schedule(location.get()))
-    NavButton(frame, 'Set Tour Date', lambda: hide_all_frames("change_rules"))
+    NavButton(frame, 'Set Tour Date', lambda: change_rules())
     NavButton(frame, 'Log Off', lambda: hide_all_frames("log_in"))
 
 
@@ -163,8 +161,8 @@ def set_schedule(location):
                   row=14, column=1)
 
 
-def init_change_rules():
-    frame = frames["change_rules"]
+def change_rules():
+    frame = hide_all_frames("change_rules")
     Label(frame, text='General Tour Rules', font=big_font, width=20,
           height=2).pack()
     new_rules = Text(frame, width=30, height=15)
@@ -173,8 +171,8 @@ def init_change_rules():
     new_rules.insert(END, current_rules)
     new_rules.pack()
     NavButton(frame, 'Confirm',
-              lambda: change_rules(new_rules.get("1.0", END)))
-    NavButton(frame, 'Go Back', lambda: hide_all_frames("admin_menu", frame))
+              lambda: update_rules(new_rules.get("1.0", END)))
+    NavButton(frame, 'Go Back', lambda: hide_all_frames("admin_menu"))
 
 
 def init_profile():
@@ -200,7 +198,7 @@ def load_tours(date, location):
     NavButton(frame, 'Go back', lambda: hide_all_frames("main_menu", frame))
 
 
-def purchase_ticket(date, time, tour, price=0) -> None:
+def purchase_ticket(date: str, time: str, tour: Tour, price: int = 0) -> None:
     ticket = {"Name": tour["Name"], "Location": tour["Location"], "Date": date,
               "Time": time, "Duration": tour["Duration"],
               "Description": tour["Description"]}
@@ -324,7 +322,7 @@ def hide_all_frames(new_frame: str,
     return frames[new_frame]
 
 
-def init_ui(new_user) -> Frame:
+def init_ui(new_user: User) -> Frame:
     Frames.user = new_user
     if user["role"] == "Coordinator":
         init_coordinator_menu()
@@ -332,7 +330,6 @@ def init_ui(new_user) -> Frame:
     elif user["role"] == "Admin":
         init_admin_menu()
         init_add_tour_type()
-        init_change_rules()
         return hide_all_frames("admin_menu")
 
     init_main_menu()

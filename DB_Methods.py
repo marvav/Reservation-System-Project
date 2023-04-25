@@ -1,3 +1,4 @@
+import Frames
 from Widgets import *
 import harperdb
 import hashlib
@@ -7,7 +8,7 @@ db = harperdb.HarperDB(url="https://pb175-marvav.harperdbcloud.com",
                        username="marvav", password="muniprojekt123")
 
 
-def update_schedule(hours, minutes, daily):
+def update_schedule(hours: List[Entry], minutes: List[Entry], daily):
     new_schedule = []
     for i in range(len(hours)):
         if hours[i].get() != "":
@@ -20,10 +21,10 @@ def update_schedule(hours, minutes, daily):
     Frames.hide_all_frames("coordinator_menu")
 
 
-def change_rules(new_rules):
+def update_rules(new_rules):
     db.update("database", "general_data", [{"name": "general_rules",
                                             "data": new_rules}])
-    return Frames.hide_all_frames("admin_menu")
+    Frames.hide_all_frames("admin_menu")
 
 
 def tour_types(param):
@@ -51,7 +52,8 @@ def get_schedules():
 def delete_tour(frame, tour):
     db.delete("database", "tour_types", [tour["Name"]])
     db.delete("database", "DailyTours", [tour["Name"]])
-    return Frames.hide_all_frames("admin_menu", frame)
+    Frames.hide_all_frames("admin_menu", Frames.frames["admin_menu"])
+    Frames.init_admin_menu()
 
 
 def purchase(frame, ticket, tickets, discount):
@@ -79,7 +81,8 @@ def insert_tour_type(frame, entries):
         return ErrorLabelGrid(frame, "Invalid tour", 10, 1)
 
     db.insert("database", "tour_types", [tour])
-    db.insert("database", "DailyTours",[{"Name": tour["Name"], "schedule": []}])
+    db.insert("database", "DailyTours",
+              [{"Name": tour["Name"], "schedule": []}])
 
     return Frames.hide_all_frames("admin_menu")
 

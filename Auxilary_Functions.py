@@ -1,9 +1,12 @@
 from datetime import datetime, date
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable
 from tkinter import *
 from tkinter import font, ttk
 
 Tour = Dict[str, str]
+Ticket = Dict[str, str]
+Entries = Dict[Entry, str]
+User = Dict[str, str]
 
 TOUR_PARAMS = ["Name", "Capacity", "Description", "DiscountPrice",
                "Duration", "Location", "TicketPrice"]
@@ -24,6 +27,10 @@ def get_tour(entries):
 
 
 def is_valid_tour(tour):
+    for param in TOUR_PARAMS:
+        if param not in tour:
+            return False
+
     if not tour["Name"].replace(' ', '').isalpha():
         return False
 
