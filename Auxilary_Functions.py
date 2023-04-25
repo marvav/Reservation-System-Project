@@ -3,6 +3,8 @@ from typing import List, Dict, Optional, Callable
 from tkinter import *
 from tkinter import font, ttk
 
+import Frames
+
 Tour = Dict[str, str]
 Ticket = Dict[str, str]
 Entries = Dict[Entry, str]
@@ -10,6 +12,10 @@ User = Dict[str, str]
 
 TOUR_PARAMS = ["Name", "Capacity", "Description", "DiscountPrice",
                "Duration", "Location", "TicketPrice"]
+
+tour_order = ["Name", "Location", "Date", "Time", "Duration", "Description"]
+ticket_order = ["Name", "Location", "Date", "Time", "Duration",
+                "Description", "TicketsNumber", "DiscountNumber"]
 
 
 def strip_entry(entry) -> str:
@@ -24,6 +30,14 @@ def get_tour(entries):
         else:
             tour[parameter] = entries[parameter].get()
     return tour
+
+
+def tour_to_ticket(ticket: Tour, time: str, date: str) -> Ticket:
+    ticket["Date"] = date
+    ticket["Time"] = time
+    ticket.pop("DiscountPrice")
+    ticket.pop("TicketPrice")
+    return ticket
 
 
 def is_valid_tour(tour):
@@ -72,3 +86,12 @@ def get_time():
 
 def is_expired(date, time):
     return date < get_date() or (date == get_date() and time < get_time())
+
+
+def get_tours_with_param(key, value) -> List[Tour]:
+    return [tour for tour in Frames.tour_types if tour[key] == value]
+
+
+def get_tours_params(param) -> List[str]:
+    return [tour[param] for tour in Frames.tour_types]
+

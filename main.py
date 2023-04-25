@@ -21,12 +21,16 @@ if __name__ == '__main__':
 
     background.pack(side='top', fill=Y, expand=True)
 
-    Widgets.big_font = font.Font(family="Helvetica", size=18, weight="bold")
-    Widgets.small_font = font.Font(family="Helvetica", size=10)
+    Widgets.big_font = font.Font(size=18, weight="bold")
+    Widgets.medium_font = font.Font(size=13, weight="bold")
+    Widgets.small_font = font.Font(size=10)
 
-    init_log_in()
-    init_register()
+    Frames.schedules = get_schedules()
+    Frames.tour_types = get_tour_types()
+
+    log_in()
 
     frames["log_in"].tkraise()
     frames["log_in"].place(relx=0.5, rely=0.5, anchor=CENTER)
+
     root.mainloop()
