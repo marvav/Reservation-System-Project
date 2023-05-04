@@ -25,8 +25,8 @@ if __name__ == '__main__':
     Widgets.medium_font = font.Font(size=13, weight="bold")
     Widgets.small_font = font.Font(size=10)
 
-    Frames.schedules = get_schedules()
     Frames.tour_types = get_tour_types()
+    Frames.tours = get_tours()
 
     log_in()
 

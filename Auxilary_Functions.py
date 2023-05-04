@@ -1,7 +1,4 @@
-from datetime import datetime, date
-from typing import List, Dict, Optional, Callable
-from tkinter import *
-from tkinter import font, ttk
+from Modules import *
 
 import Frames
 
@@ -15,7 +12,7 @@ TOUR_PARAMS = ["Name", "Capacity", "Description", "DiscountPrice",
 
 tour_order = ["Name", "Location", "Date", "Time", "Duration", "Description"]
 ticket_order = ["Name", "Location", "Date", "Time", "Duration",
-                "Description", "TicketsNumber", "DiscountNumber"]
+                "Description", "TicketsNumber", "DiscountNumber", "Code"]
 
 
 def strip_entry(entry) -> str:
@@ -33,6 +30,7 @@ def get_tour(entries):
 
 
 def tour_to_ticket(ticket: Tour, time: str, date: str) -> Ticket:
+    ticket = ticket.copy()
     ticket["Date"] = date
     ticket["Time"] = time
     ticket.pop("DiscountPrice")
@@ -76,7 +74,9 @@ def calculate_price(tickets, discount, tour):
 
 def get_date():
     today = date.today()
-    return str(today.day) + "/" + str(today.month) + "/" + str(today.year)
+    day = "0"+str(today.day) if len(str(today.day))==1 else str(today.day)
+    month = "0"+str(today.month) if len(str(today.month))==1 else str(today.month)
+    return day + "/" + month + "/" + str(today.year)
 
 
 def get_time():

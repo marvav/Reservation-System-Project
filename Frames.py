@@ -2,7 +2,8 @@ from DB_Methods import *
 
 """
 This file contains functions generating all frames of the application.
-Each function generates its frame upon entering to ensure synchronization of data with database.
+Each function generates its frame upon entering to ensure synchronization 
+of data with database.
 """
 
 # Dictionary of all frames in the application to ensure quick access
@@ -10,9 +11,17 @@ frames = {"log_in": None, "register": None, "main_menu": None,
           "your_tickets": None, "show_tickets": None, "profile": None,
           "tours": None, "admin_menu": None, "modify_tour_type": None,
           "add_tour_type": None, "change_rules": None, "purchase": None,
-          "ticket": None, "coordinator_menu": None, "set_schedule": None}
+          "ticket": None, "coordinator_menu": None, "set_schedule": None,
+          "enter_refund": None}
+
+# Type aliases for better readability
+Tour = Dict[str, str]
+Ticket = Dict[str, str]
+Entries = Dict[Entry, str]
+User = Dict[str, str]
 
 user = None
+tours = dict()
 schedules = dict()
 tour_types = dict()
 
@@ -20,6 +29,7 @@ tour_types = dict()
 # Initial admin menu providing options to add / modify tour,
 # set global rules and log off
 def admin_menu() -> None:
+    print(tour_types)
     frame = hide_all_frames("admin_menu")
     Label(frame, text='Admin Menu', font=big_font, width=20, height=2).pack()
     NavButton(frame, 'Add new tour', lambda: add_tour_type())
@@ -126,24 +136,25 @@ def modify_tour_type(tour_name: str) -> None:
 
 # Creates the layout for coordinator menu.
 # Provides option to set schedule at chosen location or set tour date
-def coordinator_menu():
+def coordinator_menu() -> None:
     frame = hide_all_frames("coordinator_menu")
     Label(frame, text='Coordinator Menu', font=big_font, width=20,
           height=2).pack()
     Label(frame, text='Choose Location:', width=20, height=2).pack()
-    location = ttk.Combobox(frame, values=get_tours_params("Location"),
+    tours = ttk.Combobox(frame, values=get_tours_params("Name"),
                             width=20, justify='center')
-    location.current(0)
-    location.pack()
-    NavButton(frame, 'Set Schedule', lambda: set_schedule(location.get()))
+    tours.current(0)
+    tours.pack()
+    NavButton(frame, 'Set Schedule', lambda: set_schedule(tours.get()))
     NavButton(frame, 'Set Tour Date', lambda: change_rules())
     NavButton(frame, 'Log Off', lambda: log_in())
 
 
 # Creates the layout of entries to modify tour schedule times
-def set_schedule(location):
+def set_schedule(name: str) -> None:
     frame = hide_all_frames("set_schedule")
-    schedule = schedules[location]
+    tour = tours[name]
+    schedule = tour["schedule"]
     Label(frame, text='Hours', font=small_font, width=10, height=2).grid(
         row=2, column=0)
     Label(frame, text='Minutes', font=small_font, width=10, height=2).grid(
@@ -162,7 +173,7 @@ def set_schedule(location):
     NavButtonGrid(frame, 'Go back', lambda: coordinator_menu(), row=14,
                   column=0)
     NavButtonGrid(frame, 'Confirm',
-                  lambda: update_schedule(hours, minutes, schedule),
+                  lambda: update_schedule(hours, minutes, tour),
                   row=14, column=1)
 
 
@@ -192,17 +203,21 @@ def profile() -> None:
 
 
 # Displays available tour times at the specific location
-def load_tours(date: str, location: str) -> None:
+def load_tours(date: str, name: str) -> None:
     frame = hide_all_frames("tours")
     Label(frame, text='Upcoming Tours').pack()
-
+    schedule = tours[name]["schedule"]
     if date >= get_date():
-        for tour in get_tours_with_param("Location", location):
-            for time in schedules[location]:
+        for tour in get_tours_with_param("Name", name):
+            for time in schedule:
                 if date == get_date() and time < get_time():
                     continue
                 label = tour["Name"] + " | " + time + " | " + tour[
                     "Duration"] + " minutes | "
+                if (date+time) in tours[name]["dates"]:
+                    label += "Capacity: " + str(tours[name]["dates"][date+time])
+                else:
+                    label += "Capacity: " + tour["Capacity"]
                 SmallButton(frames["tours"], label,
                             lambda: purchase_ticket(date, time, tour))
     NavButton(frame, 'Go back', lambda: main_menu())
@@ -235,7 +250,7 @@ def purchase_ticket(date: str, time: str, tour: Tour,
                     calculate_price(tickets, discount, ticket)) + " CZK"))
     NavButton(frame, 'Purchase',
               lambda: purchase(frame, ticket, tickets, discount))
-    NavButton(frame, 'Go Back', lambda: load_tours(date, ticket["Location"]))
+    NavButton(frame, 'Go Back', lambda: load_tours(date, ticket["Name"]))
 
 
 # Displays tickets purchased by the user.
@@ -259,7 +274,17 @@ def show_your_tickets() -> None:
     frame = hide_all_frames("your_tickets")
     NavButton(frame, 'Valid tickets', lambda: show_tickets(False))
     NavButton(frame, 'Expired tickets', lambda: show_tickets(True))
+    NavButton(frame, 'Refunds', lambda: enter_refund())
     NavButton(frame, 'Go back', lambda: main_menu())
+
+
+def enter_refund():
+    frame = hide_all_frames("enter_refund")
+    MediumLabel(frame, "Enter ticket code").pack()
+    code = Entry(frame)
+    code.pack()
+    NavButton(frame, 'Confirm', lambda: process_refund(frame, code.get()))
+    NavButton(frame, 'Go back', lambda: show_your_tickets())
 
 
 # Visitor menu providing access to purchasing new tickets.
@@ -270,7 +295,7 @@ def main_menu() -> None:
     date = tkcalendar.DateEntry(frame, date_pattern='dd/mm/yyyy',
                                 justify='center')
     date.pack()
-    combo = ttk.Combobox(frame, values=get_tours_params("Location"),
+    combo = ttk.Combobox(frame, values=get_tours_params("Name"),
                          width=20, justify='center')
     combo.current(0)
     combo.pack()
