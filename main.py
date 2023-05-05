@@ -1,6 +1,10 @@
 from Frames import *
 import Widgets
 
+"""
+This is the main file to make the application run. Initiates the program.
+"""
+
 
 def initialize_window() -> Tk:
     window = Tk()

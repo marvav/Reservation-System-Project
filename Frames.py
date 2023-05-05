@@ -142,7 +142,7 @@ def coordinator_menu() -> None:
           height=2).pack()
     Label(frame, text='Choose Location:', width=20, height=2).pack()
     tours = ttk.Combobox(frame, values=get_tours_params("Name"),
-                            width=20, justify='center')
+                         width=20, justify='center')
     tours.current(0)
     tours.pack()
     NavButton(frame, 'Set Schedule', lambda: set_schedule(tours.get()))
@@ -202,6 +202,21 @@ def profile() -> None:
     NavButton(frame, 'Log off', lambda: log_in())
 
 
+# Creates button for tour ticket purchase
+def tour_button(date: str, time: str, tour: Tour, name: str) -> None:
+    if date == get_date() and time < get_time():
+        return
+    label = tour["Name"] + " | " + time + " | " + tour[
+        "Duration"] + " minutes | "
+    if (date + time) in tours[name]["dates"]:
+        label += "Capacity: " + str(
+            tours[name]["dates"][date + time])
+    else:
+        label += "Capacity: " + tour["Capacity"]
+    SmallButton(frames["tours"], label,
+                lambda: purchase_ticket(date, time, tour))
+
+
 # Displays available tour times at the specific location
 def load_tours(date: str, name: str) -> None:
     frame = hide_all_frames("tours")
@@ -210,22 +225,13 @@ def load_tours(date: str, name: str) -> None:
     if date >= get_date():
         for tour in get_tours_with_param("Name", name):
             for time in schedule:
-                if date == get_date() and time < get_time():
-                    continue
-                label = tour["Name"] + " | " + time + " | " + tour[
-                    "Duration"] + " minutes | "
-                if (date+time) in tours[name]["dates"]:
-                    label += "Capacity: " + str(tours[name]["dates"][date+time])
-                else:
-                    label += "Capacity: " + tour["Capacity"]
-                SmallButton(frames["tours"], label,
-                            lambda: purchase_ticket(date, time, tour))
+                tour_button(date, time, tour, name)
     NavButton(frame, 'Go back', lambda: main_menu())
 
 
 # Displays tour information and entries for user to initiate the purchase
-def purchase_ticket(date: str, time: str, tour: Tour,
-                    price: int = 0) -> None:
+def purchase_ticket(date: str, time: str, tour: Tour, tickets_count: str = 0,
+                    discount_count: str = 0, price: int = 0) -> None:
     ticket = tour_to_ticket(tour, time, date)
     frame = hide_all_frames("purchase")
 
@@ -238,16 +244,20 @@ def purchase_ticket(date: str, time: str, tour: Tour,
 
     tickets = Entry(frame)
     tickets.pack()
+    tickets.insert(END, tickets_count)
     Label(frame, text='Discount Tickets number', font=small_font).pack()
     discount = Entry(frame)
     discount.pack()
+    discount.insert(END, discount_count)
 
-    price = Label(frames["purchase"], text="Price: 0 CZK")
+    price = Label(frames["purchase"], text="Price: " + str(price) + " CZK")
     price.pack()
 
     SmallButton(frame, "Calculate price",
-                lambda: price.config(text="Price: " + str(
-                    calculate_price(tickets, discount, ticket)) + " CZK"))
+                lambda: purchase_ticket(date, time, tour, tickets.get(),
+                                        discount.get(),
+                                        calculate_price(tickets, discount,
+                                                        tour)))
     NavButton(frame, 'Purchase',
               lambda: purchase(frame, ticket, tickets, discount))
     NavButton(frame, 'Go Back', lambda: load_tours(date, ticket["Name"]))

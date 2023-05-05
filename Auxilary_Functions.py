@@ -1,7 +1,19 @@
+from typing import Any
+
+import Widgets
 from Modules import *
 
 import Frames
 
+"""
+This file contains auxiliary functions providing functionality such as 
+conversion, validity checks, formatting and extra type annotations.
+Functions here should not require comments as they should be easy to 
+understand and self-commenting
+"""
+
+# Type annotations
+TourRecord = Dict[str, Any]
 Tour = Dict[str, str]
 Ticket = Dict[str, str]
 Entries = Dict[Entry, str]
@@ -19,7 +31,7 @@ def strip_entry(entry) -> str:
     return entry.replace(' ', '')
 
 
-def get_tour(entries):
+def get_tour(entries: Dict[str, Any]) -> Tour:
     tour = dict()
     for parameter in TOUR_PARAMS:
         if parameter == "Description":
@@ -38,7 +50,25 @@ def tour_to_ticket(ticket: Tour, time: str, date: str) -> Ticket:
     return ticket
 
 
-def is_valid_tour(tour):
+def is_purchase_valid(frame: Frame, tickets: Entry, discount: Entry) -> bool:
+    try:
+        if tickets.get() != "" and int(tickets.get()) < 0:
+            Widgets.ErrorLabel(frame, "Invalid ticket count")
+            return False
+        if discount.get() != "" and int(discount.get()) < 0:
+            Widgets.ErrorLabel(frame, "Invalid discount count")
+            return False
+        if tickets.get() != "" and discount.get() != "" \
+                and int(tickets.get()) + int(discount.get()) == 0:
+            Widgets.ErrorLabel(frame, "No tickets selected")
+            return False
+    except:
+        Widgets.ErrorLabel(frame, "Please enter number")
+        return False
+    return True
+
+
+def is_valid_tour(tour: Tour) -> bool:
     for param in TOUR_PARAMS:
         if param not in tour:
             return False
@@ -67,31 +97,37 @@ def is_valid_tour(tour):
     return True
 
 
-def calculate_price(tickets, discount, tour):
-    return int(tickets.get()) * int(tour["DiscountPrice"]) + \
-           int(discount.get()) * int(tour["TicketPrice"])
+def calculate_price(tickets: Entry, discount: Entry, tour: Tour) -> int:
+    price = 0
+    price += int(discount.get()) * int(tour["DiscountPrice"])
+    price += int(tickets.get()) * int(tour["TicketPrice"])
+    return price
 
 
-def get_date():
+def get_date() -> str:
     today = date.today()
-    day = "0"+str(today.day) if len(str(today.day))==1 else str(today.day)
-    month = "0"+str(today.month) if len(str(today.month))==1 else str(today.month)
+    day = "0" + str(today.day) if len(str(today.day)) == 1 else str(today.day)
+    month = "0" + str(today.month) if len(str(today.month)) == 1 else str(
+        today.month)
     return day + "/" + month + "/" + str(today.year)
 
 
-def get_time():
+def get_time() -> str:
     today = datetime.time(datetime.now())
-    return str(today.hour) + ":" + str(today.minute)
+    hour = "0" + str(today.hour) if len(str(today.hour)) == 1 else str(
+        today.hour)
+    minute = "0" + str(today.minute) if len(str(today.minute)) == 1 else str(
+        today.minute)
+    return hour + ":" + minute
 
 
-def is_expired(date, time):
+def is_expired(date: str, time: str) -> bool:
     return date < get_date() or (date == get_date() and time < get_time())
 
 
-def get_tours_with_param(key, value) -> List[Tour]:
+def get_tours_with_param(key: str, value: str) -> List[Tour]:
     return [tour for tour in Frames.tour_types if tour[key] == value]
 
 
-def get_tours_params(param) -> List[str]:
+def get_tours_params(param: str) -> List[str]:
     return [tour[param] for tour in Frames.tour_types]
-

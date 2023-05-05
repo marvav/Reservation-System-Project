@@ -60,7 +60,8 @@ def ShowValidTickets(frame: Frame, listbox: Listbox) -> None:
         if not is_expired(ticket["Date"], ticket["Time"]):
             listbox.insert(END, ticket["Name"] + " | " + ticket["Location"])
             listbox.insert(END, ticket["Date"] + " | " + ticket["Time"])
-            listbox.insert(END,"Ticket Code: " + ticket["Code"])
+            listbox.insert(END, "Ticket Identification Code:")
+            listbox.insert(END, ticket["Code"])
             listbox.insert(END, "Full tickets: " + ticket["TicketsNumber"])
             listbox.insert(END,
                            "Discounted tickets: " + ticket["DiscountNumber"])
@@ -73,8 +74,9 @@ def ShowExpiredTickets(frame: Frame, listbox: Listbox) -> None:
         if is_expired(ticket["Date"], ticket["Time"]):
             listbox.insert(END, ticket["Name"] + " | " + ticket["Location"])
             listbox.insert(END, ticket["Date"] + " | " + ticket["Time"])
-            listbox.insert(END,"Ticket Code: " + ticket["Code"])
+            listbox.insert(END, "Ticket Code: " + ticket["Code"])
             listbox.insert(END, "Full tickets: " + ticket["TicketsNumber"])
             listbox.insert(END,
                            "Discounted tickets: " + ticket["DiscountNumber"])
             listbox.insert(END, "\n")
+

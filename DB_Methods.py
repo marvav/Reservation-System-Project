@@ -1,10 +1,17 @@
 from Widgets import *
 
+"""
+This file contains all methods communicating with the online harperdb database
+"""
+
+# Instance of the database for unified communication
 db = harperdb.HarperDB(url="https://pb175-marvav.harperdbcloud.com",
                        username="marvav", password="muniprojekt123")
 
 
-def update_schedule(hours: List[Entry], minutes: List[Entry], tour):
+# Propagates changes in schedule made by Coordinator into database
+def update_schedule(hours: List[Entry], minutes: List[Entry],
+                    tour: TourRecord) -> None:
     new_schedule = []
     for i in range(len(hours)):
         if hours[i].get() != "":
@@ -14,45 +21,43 @@ def update_schedule(hours: List[Entry], minutes: List[Entry], tour):
                 new_schedule.append(hours[i].get() + ":" + minutes[i].get())
     tour["schedule"] = new_schedule
     db.update("database", "tours", [tour])
-    Frames.coordinator_menu()
+    return Frames.coordinator_menu()
 
 
+# Overwrite rules in database with new ones by Admin
 def update_rules(new_rules: str) -> None:
     db.update("database", "general_data", [{"name": "general_rules",
                                             "data": new_rules}])
     return Frames.admin_menu()
 
 
-def get_tours():
+# Pulls tour records from database
+def get_tours() -> Dict[str, TourRecord]:
     tours = dict()
     for record in db.sql("SELECT * FROM `database`.`tours`"):
         tours[record["Name"]] = record
     return tours
 
 
+# Pulls all tour types and tour information from database
 def get_tour_types() -> List[Tour]:
     return db.sql("SELECT * FROM `database`.`tour_types`")
 
 
-def delete_tour(tour):
+# Deletes tour from database and updates local copy
+def delete_tour(tour: Tour) -> None:
     db.delete("database", "tour_types", [tour["Name"]])
     db.delete("database", "tours", [tour["Name"]])
     Frames.tours = get_tours()
     Frames.tour_types = get_tour_types()
-    Frames.admin_menu()
+    return Frames.admin_menu()
 
 
-def purchase(frame: Frame, ticket, tickets, discount):
-    try:
-        if tickets.get() != "" and int(tickets.get()) < 0:
-            return ErrorLabel(frame, "Invalid ticket count")
-        if discount.get() != "" and int(discount.get()) < 0:
-            return ErrorLabel(frame, "Invalid discount count")
-        if tickets.get() != "" and discount.get() != "" \
-                and int(tickets.get()) + int(discount.get()) == 0:
-            return ErrorLabel(frame, "No tickets selected")
-    except:
-        return ErrorLabel(frame, "Please enter number")
+# Assigns ticket to the users account and updates available capacity
+def purchase(frame: Frame, ticket: Ticket, tickets: Entry,
+             discount: Entry) -> None:
+    if not is_purchase_valid(frame, tickets, discount):
+        return
 
     ticket_count = 0
     if tickets.get() != "":
@@ -85,6 +90,26 @@ def purchase(frame: Frame, ticket, tickets, discount):
     Frames.main_menu()
 
 
+# Deletes ticket from users account and restores the freed capacity.
+def process_refund(frame: Frame, ticket_code: str) -> None:
+    for index, ticket in enumerate(Frames.user["tickets"]):
+        if ticket["Code"] == ticket_code:
+            count = 0
+            if ticket["TicketsNumber"] != "":
+                count += int(ticket["TicketsNumber"])
+            if ticket["DiscountNumber"] != "":
+                count += int(ticket["DiscountNumber"])
+            tour = Frames.tours[ticket["Name"]]
+            tour["dates"][ticket["Date"] + ticket["Time"]] += count
+            db.update("database", "tours", [tour])
+
+            del Frames.user["tickets"][index]
+            db.update("database", "users", [Frames.user])
+            return Frames.show_your_tickets()
+    ErrorLabel(frame, "This code is not valid")
+
+
+# Inserts new tour type onto the database and updates local values
 def insert_tour_type(frame: Frame, entries: Dict[str, Entry]) -> None:
     tour = get_tour(entries)
     if not is_valid_tour(tour):
@@ -94,9 +119,11 @@ def insert_tour_type(frame: Frame, entries: Dict[str, Entry]) -> None:
     db.insert("database", "tours",
               [{"Name": tour["Name"], "schedule": [], "dates": {}}])
     Frames.tour_types = get_tour_types()
+    Frames.tours = get_tours()
     return Frames.admin_menu()
 
 
+# Propagates changes in tour type into database and updates local information
 def update_tour_type(frame: Frame, entries: Dict[str, Entry]) -> None:
     tour = get_tour(entries)
     if not is_valid_tour(tour):
@@ -107,6 +134,7 @@ def update_tour_type(frame: Frame, entries: Dict[str, Entry]) -> None:
     return Frames.admin_menu()
 
 
+# Adds new user to the database, Password is stored as a hash
 def register_user(username: str, password: str) -> None:
     frame = Frames.frames["register"]
 
@@ -131,24 +159,7 @@ def register_user(username: str, password: str) -> None:
         ErrorLabel(frame, 'Error is on our side. Try again')
 
 
-def process_refund(frame: Frame, ticket_code: str):
-    for index, ticket in enumerate(Frames.user["tickets"]):
-        if ticket["Code"] == ticket_code:
-            count = 0
-            if ticket["TicketsNumber"] != "":
-                count += int(ticket["TicketsNumber"])
-            if ticket["DiscountNumber"] != "":
-                count += int(ticket["DiscountNumber"])
-            tour = Frames.tours[ticket["Name"]]
-            tour["dates"][ticket["Date"] + ticket["Time"]] += count
-            db.update("database", "tours", [tour])
-
-            del Frames.user["tickets"][index]
-            db.update("database", "users", [Frames.user])
-            return Frames.show_your_tickets()
-    ErrorLabel(frame, "This code is not valid")
-
-
+# Authorizes users request to access account in the database
 def authorize_log_in(username: str, password: str) -> None:
     frame = Frames.frames["log_in"]
     if username == "" or password == "":
